@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Servbot Lab</title>
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="style.css?v=12">
+<script type="importmap">
+{ "imports": { "three": "./vendor/three/three.module.js", "three/addons/": "./vendor/three/addons/" } }
+</script>
+  <!-- 화면 UI design-style fonts (screenui.js) -->
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@500;700&family=Jua&family=Gaegu:wght@700&family=Do+Hyeon&display=swap" rel="stylesheet" />
+</head>
+<body>
+<div id="stage"></div>
+<div id="divider" hidden></div>
+<div id="labels"></div>
+
+<!-- top-left: project + scenario -->
+<div id="project" class="glass pill ui-sim">
+  <button id="modeBtn" class="logo-btn" title="모드 바꾸기"><span class="logo"><i></i></span><b>Servbot Lab</b></button>
+  <span class="sep"></span>
+  <button id="scenarioBtn" class="ghost">② 좁은 통로 <svg class="chev" viewBox="0 0 20 20"><path d="M6 8l4 4 4-4"/></svg></button>
+</div>
+<div id="modeMenu" class="glass menu" hidden>
+  <button data-mode="space"><b>공간 바꾸기</b><small>지금: <span id="spaceName"></span></small></button>
+  <div class="menu-label">모드</div>
+  <button data-mode="sim"><b>시뮬레이션</b><small>상황별 표정과 말투를 설계하고 비교해요</small></button>
+  <button data-mode="test"><b>사용자 테스트</b><small>참가자가 로봇의 다음 행동을 예측해요</small></button>
+  <button data-mode="ex"><b>전시 모드</b><small>자동으로 3가지 상황을 순환해요</small></button>
+</div>
+<div id="scenarioMenu" class="glass menu" hidden></div>
+
+<div id="abLabels" hidden><div class="glass pill-sm"><i style="background:var(--org)"></i>기존 행동 A</div><div class="glass pill-sm"><i style="background:var(--grn)"></i>디자인한 행동 B</div></div>
+
+<!-- top-right: playback -->
+<div id="playback" class="glass pill ui-sim">
+  <button id="playBtn" class="play" title="재생/일시정지 (Space)"></button>
+  <span id="time"><b>0:00</b> / 0:40</span>
+  <span class="sep"></span>
+  <button id="resetBtn" class="ghost icon" title="처음부터 (R)"><svg viewBox="0 0 20 20"><path d="M4 10a6 6 0 1 0 2-4.5M4 4v3.5h3.5"/></svg></button>
+  <button id="speedBtn" class="ghost">1×</button>
+</div>
+
+<!-- bottom toolbar -->
+<div id="toolbar" class="glass ui-sim">
+  <button data-tool="cursor" class="on" data-tip="선택 · 드래그로 화면 이동" data-key="V"><svg viewBox="0 0 20 20"><path class="f" d="M5 3v13l3.5-3.2L11 18l2-1-2.4-5H15z"/></svg></button>
+  <button data-tool="orbit" data-tip="카메라 회전" data-key="O"><svg viewBox="0 0 20 20"><circle cx="10" cy="10" r="7.5"/><circle class="f" cx="10" cy="10" r="2"/></svg></button>
+  <button data-act="cut" data-tip="벽 낮추기" data-key="W"><svg viewBox="0 0 20 20"><path d="M3 16h14M5 16V9h10v7M5 9l2-3h6l2 3"/><path d="M3 6.5h14" stroke-dasharray="2 2"/></svg></button>
+  <button data-act="focus" data-tip="로봇에 맞추기" data-key="F"><svg viewBox="0 0 20 20"><path d="M3 7V3h4M13 3h4v4M17 13v4h-4M7 17H3v-4"/></svg></button>
+  <span class="sep"></span>
+  <button data-panel="nodes" data-tip="표정·말 노드" data-key="N"><svg viewBox="0 0 20 20"><rect x="2" y="3" width="7" height="5" rx="1.5"/><rect x="11" y="12" width="7" height="5" rx="1.5"/><path d="M9 5.5h1.5v9H11"/></svg></button>
+  <button data-panel="results" data-tip="배치 결과" data-key="B"><svg viewBox="0 0 20 20"><rect class="f" x="3" y="11" width="3" height="6" rx="1"/><rect class="f" x="8.5" y="6" width="3" height="11" rx="1"/><rect class="f" x="14" y="3" width="3" height="14" rx="1"/></svg></button>
+</div>
+<div id="tooltip" hidden></div>
+
+<!-- bottom-right: point of view -->
+<div id="povInfo" class="glass pill ui-sim" hidden></div>
+<div id="povBar" class="glass seg ui-sim" title="시점 바꾸기 (C)">
+  <button data-pov="robot" class="on">로봇 얼굴</button><button data-pov="free">전체</button><button data-pov="human">사람 시점</button>
+</div>
+
+<!-- bottom-left: metric HUD -->
+<div id="hud" class="glass ui-sim"></div>
+
+<!-- right: inspector -->
+<div id="inspector" class="glass panel ui-sim" hidden></div>
+
+<!-- node editor sheet -->
+<div id="sheet" class="dark-glass ui-sim" hidden>
+  <div id="sheetGrip" title="위아래로 끌어서 높이 조절 · 더블클릭하면 전체화면" aria-label="노드 창 높이 조절"><i></i></div>
+  <div class="sheet-head">
+    <div class="crumb"><svg viewBox="0 0 20 20"><rect x="2" y="3" width="7" height="5" rx="1.5"/><rect x="11" y="12" width="7" height="5" rx="1.5"/><path d="M9 5.5h1.5v9H11"/></svg>
+      <span>표현 그래프</span><span class="dim">상황 → 반응(표정·말) · 디자인 B 로봇</span>
+      <span id="graphNote" class="dim small"></span>
+    </div>
+    <div class="actions">
+      <button id="addNodeBtn" class="chip-btn" title="빈 곳을 우클릭해도 추가돼요">＋ 노드 <span class="dim">우클릭</span></button>
+      <button id="resetGraphBtn" class="chip-btn">기본값</button>
+      <button id="zoomBtn" class="chip-btn" title="화면에 맞추기">100%</button>
+      <button id="fullSheet" class="chip-btn icon" title="전체화면" aria-label="노드 창 전체화면"><svg viewBox="0 0 20 20"><path d="M3 8V3h5M12 3h5v5M17 12v5h-5M8 17H3v-5"/></svg></button>
+      <button id="closeSheet" class="chip-btn icon" aria-label="노드 창 닫기">✕</button>
+    </div>
+  </div>
+  <div id="graphView"><div id="graphCanvas"><svg id="wires"></svg></div></div>
+  <div class="sheet-hint">우클릭으로 노드 추가 · 드래그로 연결 · 연결선 클릭 후 Delete로 끊기 · 위쪽 막대를 끌어 높이 조절 · Space+드래그 또는 휠 클릭으로 이동 · 휠로 확대</div>
+  <div id="addNode" class="dark-glass" hidden><div class="search"><svg viewBox="0 0 20 20"><circle cx="8.5" cy="8.5" r="5.5"/><path d="M12.5 12.5L17 17"/></svg><input id="addSearch" placeholder="노드 검색" autocomplete="off"></div><div id="addList"></div><div class="foot">↑↓ 이동 · ↵ 추가 · esc 닫기</div></div>
+</div>
+
+<!-- results modal -->
+<div id="dim" hidden></div>
+<div id="results" class="glass modal" hidden></div>
+
+
+<!-- user test -->
+<div id="testStart" class="glass modal" hidden>
+  <h2>사용자 테스트</h2>
+  <p class="dim">상황 3개 × 기존/디자인 2개 = 클립 6개를 무작위 순서로 보여줘요. 로봇이 움직이기 직전에 멈추면 다음 행동을 골라 주세요.</p>
+  <label>참가자 번호 <input id="pid" value="P01"></label>
+  <div class="row"><button class="btn" id="testCancel">취소</button><button class="btn primary" id="testGo">시작</button></div>
+</div>
+<div id="testTop" hidden><div class="glass pill"><b>사용자 테스트</b><span id="testPid" class="dim"></span></div><div class="glass pill" id="testProg"></div></div>
+<div id="testPaused" class="dark-pill" hidden>❚❚ 로봇이 움직이기 직전에 멈췄어요</div>
+<div id="testQ" class="glass sheet-q" hidden>
+  <h2>로봇이 다음에 무엇을 할까요?</h2>
+  <div class="opts"></div>
+  <p class="dim small">숫자 키 1–5로도 고를 수 있어요 · 고르면 바로 다음으로 넘어가요</p>
+</div>
+<div id="testReveal" class="glass card-sm" hidden></div>
+<div id="testRate" class="glass sheet-r" hidden></div>
+<div id="testDone" class="glass modal" hidden></div>
+
+<!-- exhibition -->
+<div id="ex" hidden>
+  <div id="exCaption" class="glass"></div>
+  <div id="exProg" class="glass"></div>
+  <div id="exStatA" class="glass ex-stat"></div>
+  <div id="exStatB" class="glass ex-stat"></div>
+  <div id="exPrinciple" class="glass"></div>
+  <div id="exCta" class="glass"><div><b>직접 해보기</b><span>아무 키나 누르면 시작해요</span><small>30초 동안 입력이 없으면 다시 자동으로 넘어가요</small></div><div class="qr"></div></div>
+</div>
+
+<div id="toast" hidden></div>
+<div id="spacePicker" hidden></div>
+<div id="loading"><div class="glass pill">Blender 공간 불러오는 중…</div></div>
+<script type="module" src="src/app.js?v=14"></script>
+</body>
+</html>

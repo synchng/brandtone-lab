@@ -1,0 +1,21 @@
+{
+  "name": "BrandTone 로봇 UI (개발)",
+  "id": "brandtone-lab-dev",
+  "api": "1.0.0",
+  "main": "code.js",
+  "ui": "ui.html",
+  "editorType": [
+    "figma"
+  ],
+  "documentAccess": "dynamic-page",
+  "networkAccess": {
+    "allowedDomains": [
+      "https://synchng.github.io"
+    ],
+    "devAllowedDomains": [
+      "http://localhost:5174",
+      "http://localhost:4173"
+    ],
+    "reasoning": "시뮬레이션하기 탭에서 servbot(3D 서빙 로봇 시뮬레이터)을 패널 안에 열어요. 디자인 생성·점검은 문서 안에서만 동작해요 (외부 AI·서버 호출 없음)."
+  }
+}
